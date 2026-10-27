@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pull Request Workflow"
+  short_description: "検証済み差分から日本語のPR本文を作成しghで公開する"
+  default_prompt: "$pull-request-workflow を使い、現在のbranchから日本語のPull Requestを準備してください。"

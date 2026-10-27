@@ -1,0 +1,39 @@
+# global optionや代表的なwrapperによる迂回を減らすため、該当CLI全体をreview対象にする。
+# execpolicyだけで任意の子processを完全には捕捉できないため、これは補助防御である。
+# 通常操作はconfigのauto_reviewが処理し、人の明示承認が必要な外部操作は
+# AGENTS.mdとtask gateでtool call前に停止する。
+prefix_rule(
+    pattern = ["git"],
+    decision = "prompt",
+    justification = "Gitは履歴・index・remoteへ影響できるため、すべての呼び出しをreviewする",
+)
+
+prefix_rule(
+    pattern = ["gh"],
+    decision = "prompt",
+    justification = "GitHub CLIはIssue・PR・release等の外部状態を変更できるためreviewする",
+)
+
+prefix_rule(
+    pattern = ["rm"],
+    decision = "prompt",
+    justification = "削除対象と復旧方法を実行前にreviewする。通常の編集削除にはapply_patchを使う",
+)
+
+prefix_rule(
+    pattern = [["npm", "npx", "pnpm", "pnpx", "yarn", "bun", "bunx"]],
+    decision = "prompt",
+    justification = "package managerはinstall script・network・publishを実行できるためreviewする",
+)
+
+prefix_rule(
+    pattern = [["bash", "sh", "zsh", "/bin/bash", "/bin/sh", "/bin/zsh"]],
+    decision = "prompt",
+    justification = "shell wrapperは内部commandを隠せるため、解析不能な呼び出しをreviewする",
+)
+
+prefix_rule(
+    pattern = [["env", "/usr/bin/env", "command", "sudo"]],
+    decision = "prompt",
+    justification = "実行wrapperは下位commandを隠せるため、すべての呼び出しをreviewする",
+)

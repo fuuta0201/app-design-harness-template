@@ -1,0 +1,4 @@
+interface:
+  display_name: "Independent Change Review"
+  short_description: "会話文脈なしで未コミット差分と検証証拠を独立レビューする"
+  default_prompt: "$independent-change-review を使い、現在の未commit差分を独立reviewしてください。"

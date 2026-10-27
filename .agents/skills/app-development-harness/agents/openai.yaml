@@ -1,0 +1,4 @@
+interface:
+  display_name: "App Development Harness"
+  short_description: "仕様駆動でWebアプリ開発の全工程を進行し検証する"
+  default_prompt: "$app-development-harness を使い、次のready taskの計画を提示し、承認後に実装してください。"

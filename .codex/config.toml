@@ -1,0 +1,10 @@
+#:schema https://developers.openai.com/codex/config-schema.json
+
+# 通常の実装はworkspace内で継続し、境界を越える要求だけを自動reviewへ送る。
+approval_policy = "on-request"
+approvals_reviewer = "auto_review"
+sandbox_mode = "workspace-write"
+
+[sandbox_workspace_write]
+# 依存関係の取得や公式資料の確認を、承認済み実装計画の範囲で行えるようにする。
+network_access = true
