@@ -11,11 +11,11 @@
 | プロジェクト名 | {{PROJECT_NAME}} |
 | 種別 | {{website / web application / hybrid}} |
 | 現在フェーズ | `P0` |
-| 実行中タスク | `T-000`（in_review） |
+| 実行中タスク | なし |
 | 次のreadyタスク | `T-001`（ready） |
-| blocker | `T-000`のオーナー確認 |
-| 最終検証 | 2026-10-27: validator tests 23件、template／3 Skills／Python／rules／whitespace検証成功 |
-| 次に行うこと | `T-000` の標準workflow採用をオーナーreviewする |
+| blocker | なし |
+| 最終検証 | 2026-10-30: validator tests 23件、template validation／Python compile／whitespace検証成功 |
+| 次に行うこと | 実プロジェクトで利用を開始する場合は `T-001` の計画を提示する |
 
 ## 1. Background and problem
 
@@ -286,7 +286,7 @@
 
 | ID | phase | title | task file | status | owner review |
 | --- | --- | --- | --- | --- | --- |
-| T-000 | P0 | 再利用可能な開発ハーネス基盤を定義する | `docs/tasks/T-000-harness-template.md` | in_review | required |
+| T-000 | P0 | 再利用可能な開発ハーネス基盤を定義する | `docs/tasks/T-000-harness-template.md` | done | required |
 | T-001 | P0 | プロジェクト制御文書を初期化する | `docs/tasks/T-001-project-initialization.md` | ready | required |
 | T-002 | P0 | task配置とGitHub協業規約を更新する | `docs/tasks/T-002-repository-collaboration-rules.md` | done | required |
 

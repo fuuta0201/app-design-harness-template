@@ -394,20 +394,12 @@ class HarnessCheckTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             self.copy_harness(root)
-            project = root / "docs/PROJECT.md"
-            project.write_text(
-                project.read_text(encoding="utf-8").replace(
-                    "| T-000 | P0 | 再利用可能な開発ハーネス基盤を定義する | `docs/tasks/T-000-harness-template.md` | in_review | required |",
-                    "| T-000 | P0 | 再利用可能な開発ハーネス基盤を定義する | `docs/tasks/T-000-harness-template.md` | done | required |",
-                    1,
-                ),
-                encoding="utf-8",
-            )
             task = root / "docs/tasks/T-000-harness-template.md"
             task.write_text(
                 task.read_text(encoding="utf-8")
-                .replace("| Status | in_review |", "| Status | done |", 1)
-                .replace("- Verdict: pass", "- Verdict: pending", 1),
+                .replace("- [x] owner reviewが完了する。", "- [ ] owner reviewが完了する。", 1)
+                .replace("- Verdict: pass", "- Verdict: pending", 1)
+                .replace("- Result: approved", "- Result: pending", 1),
                 encoding="utf-8",
             )
 
@@ -425,7 +417,7 @@ class HarnessCheckTests(unittest.TestCase):
             project = root / "docs/PROJECT.md"
             project.write_text(
                 project.read_text(encoding="utf-8").replace(
-                    "`T-000`（in_review）", "`T-000`（done）", 1
+                    "| 実行中タスク | なし |", "| 実行中タスク | `T-000`（in_review） |", 1
                 ),
                 encoding="utf-8",
             )
