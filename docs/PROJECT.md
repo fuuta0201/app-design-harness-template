@@ -15,7 +15,7 @@
 | 次のreadyタスク | `T-001`（ready） |
 | blocker | なし |
 | 最終検証 | 2026-11-11: validator tests 29件、template validation／Python compile／whitespace検証、独立review、`isTemplate: true`確認成功 |
-| 次に行うこと | 別承認後に`T-003`のlocal差分をcommit／pushする。生成先では`T-001`から開始する |
+| 次に行うこと | テンプレート配布準備は完了。生成先では`T-001`からプロジェクト初期化を開始する |
 
 ## 1. Background and problem
 

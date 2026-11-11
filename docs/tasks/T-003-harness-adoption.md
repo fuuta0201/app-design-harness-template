@@ -148,7 +148,7 @@
 
 ## Handoff
 
-- Completed: 導入手順、project化契約、validator／tests、独立review、owner review、Template Repository有効化と確認。
-- Remaining: repository-local差分のcommit／push（このtaskの自動実行scope外）。
-- Next action: 別承認後にcommit／pushし、default branchから更新済みテンプレートを配布する。
-- Do not touch: application code、dependencies、利用プロジェクト、GitHub設定（別承認前）。
+- Completed: 導入手順、project化契約、validator／tests、独立review、owner review、Template Repository有効化、commit `b2daf70`の`origin/main`反映。
+- Remaining: none。
+- Next action: 生成先で`T-001`を計画し、対象プロジェクト用へ初期化する。
+- Do not touch: application code、dependencies、利用プロジェクト、新たなGitHub設定。
