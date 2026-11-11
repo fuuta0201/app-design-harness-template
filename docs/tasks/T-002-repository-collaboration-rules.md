@@ -6,6 +6,7 @@
 | Phase | P0 |
 | Linked specs | `HR-009`〜`HR-012` |
 | Depends on | `T-000` |
+| Template role | maintenance |
 | Owner review | required — repository標準、文章規約、GitHub外部設定を決めるため |
 | Plan approval | approved |
 

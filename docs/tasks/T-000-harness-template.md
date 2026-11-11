@@ -6,6 +6,7 @@
 | Phase | P0 |
 | Linked specs | `HR-001`〜`HR-008` |
 | Depends on | - |
+| Template role | maintenance |
 | Owner review | required — 今後の標準workflowを決めるため |
 | Plan approval | approved |
 

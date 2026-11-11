@@ -17,7 +17,8 @@ Webサイト／Webアプリケーションの企画、設計、開発、テス�
 │       ├── TEMPLATE.md
 │       ├── T-000-harness-template.md
 │       ├── T-001-project-initialization.md
-│       └── T-002-repository-collaboration-rules.md
+│       ├── T-002-repository-collaboration-rules.md
+│       └── T-003-harness-adoption.md
 ├── .codex/
 │   ├── config.toml
 │   └── rules/project.rules
@@ -29,7 +30,8 @@ Webサイト／Webアプリケーションの企画、設計、開発、テス�
 │   └── pull-request-workflow/
 │       └── SKILL.md
 ├── scripts/
-│   └── check_harness.py
+│   ├── check_harness.py
+│   └── test_check_harness.py
 └── .github/
     └── pull_request_template.md
 ```
@@ -45,15 +47,47 @@ Webサイト／Webアプリケーションの企画、設計、開発、テス�
 
 Codexはルートから作業すると `AGENTS.md` を自動的に読みます。repo-local Skillは `.agents/skills/` に置き、繰り返し使う手順を必要なときだけ読み込ませます。この役割分担は、常時コンテキストを小さく保ちながら、詳細な工程を再利用するためのものです。
 
-## 新しいプロジェクトでの使い方
+## 新規プロジェクトへ導入する
 
-1. このテンプレートからリポジトリを作成する。
-2. `docs/PROJECT.md` の `{{...}}` を、確認済み事実または明示した仮説で埋める。
-3. 背景、目標、非目標、利用者、制約、成功条件を先に確定する。
-4. `docs/tasks/TEMPLATE.md` から最初のtask fileを作り、`PROJECT.md` の索引へ登録する。
-5. Codexへ「`$app-development-harness` を使って次のready taskを計画して」と依頼する。UIで利用できる場合は `/plan` を使う。
-6. 計画を確認してOKを出す。Codexは承認済みscope内を追加確認なしで実装・検証・独立reviewまで進める。
-7. 公開など外部状態を変える操作は、影響とロールバックを確認してから別途実行する。
+通常のcloneやforkではなく、GitHub Template Repositoryから新しいリポジトリを生成します。生成先は元テンプレートとは異なるGit履歴を持ち、`origin`は生成したリポジトリを指します。テンプレート側の更新は生成先へ自動同期されません。
+
+仕様の詳細は[GitHub Docs: Creating a repository from a template](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template)と[GitHub CLI: `gh repo create`](https://cli.github.com/manual/gh_repo_create)を参照してください。
+
+GitHubのWeb UIでは、このリポジトリの **Use this template** から **Create a new repository** を選び、owner、repository名、visibilityを指定します。CLIでは次のように作成とcloneを一度に行えます。
+
+```bash
+gh repo create OWNER/REPOSITORY \
+  --private \
+  --template fuuta0201/app-design-harness-template \
+  --clone
+cd REPOSITORY
+```
+
+`OWNER/REPOSITORY`、visibility、clone先はプロジェクトに合わせて変更します。`--include-all-branches`は指定せず、承認済みのdefault branchだけを開始点にします。
+
+### 生成後の初期化
+
+1. `python3 scripts/check_harness.py --mode template`で生成直後の構造を確認する。
+2. Codexで生成先をtrusted projectとして開き直す。`.codex/config.toml`を読み込ませるため、信頼設定後にCodexを再起動する。
+3. Codexへ「`$app-development-harness`を使って`T-001`を計画して」と依頼し、提示されたscopeを確認して承認する。
+4. `T-001`で`README.md`と`docs/PROJECT.md`を対象プロジェクト用へ初期化し、`Template role: maintenance`のtask、template scopeのdecision、保守用snapshotを削除する。
+5. `AGENTS.md`、`.agents/skills/`、`.codex/`、`docs/tasks/TEMPLATE.md`、`HR-*`のハーネス不変条件は保持する。
+6. 初期化後に`python3 scripts/check_harness.py --mode project`を実行し、placeholderとテンプレート保守情報が残っていないことを確認する。
+
+`T-001`完了後は、対象プロジェクトの`README.md`、`docs/PROJECT.md`、`docs/tasks/`が正本になります。通常のcloneでこの配布元を直接開発したり、生成先の`origin`を配布元へ向けたりしないでください。
+
+## 既存プロジェクトへ導入する
+
+既存プロジェクトでは、テンプレートを一括コピーしたり既存リポジトリのremoteに設定したりしません。既存の規約、文書、設定、application codeを保護するため、導入自体を1つの変更taskとして扱います。
+
+1. 対象リポジトリで`git status`、適用中の指示、既存の`AGENTS.md`、`.codex/`、`.agents/`、`docs/`、`.github/`、`.gitignore`をread-onlyで調査する。
+2. `chore/adopt-development-harness`等の専用branchを作る。
+3. このテンプレートは対象リポジトリ外の一時directoryへ取得し、対象リポジトリの`.git`やremoteを変更しない。
+4. 衝突するfileごとに、既存内容を維持する部分、ハーネスから統合する契約、採用しない部分を計画へ記載し、承認を得る。
+5. 承認後に`AGENTS.md`、`.agents/skills/`、`.codex/`、`docs/PROJECT.md`、`docs/tasks/`、`.github/pull_request_template.md`、validatorをfile単位で統合する。既存fileを無条件に上書きしない。
+6. プロジェクト固有の`PROJECT.md`と初期taskを作り、`python3 scripts/check_harness.py --mode project`、対象プロジェクト固有のtest、独立reviewを実行する。
+
+既存構成はプロジェクトごとに異なるため、自動コピー・自動マージするinstallerは提供しません。テンプレート更新も自動適用せず、必要な変更だけを新しいtaskとして取り込みます。
 
 テンプレート状態の確認:
 

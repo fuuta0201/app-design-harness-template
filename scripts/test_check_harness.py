@@ -11,9 +11,11 @@ from pathlib import Path
 
 from scripts.check_harness import (
     REQUIRED_FILES,
+    REQUIRED_HARNESS_REQUIREMENT_IDS,
     REQUIRED_HEADINGS,
     REQUIRED_PR_HEADINGS,
     REQUIRED_TASK_HEADINGS,
+    TEMPLATE_README_SNIPPETS,
 )
 
 
@@ -36,6 +38,47 @@ class HarnessCheckTests(unittest.TestCase):
             target = destination / relative
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
+
+    def projectize_harness(self, root: Path) -> None:
+        project = root / "docs/PROJECT.md"
+        project_text = project.read_text(encoding="utf-8")
+        project_text = "\n".join(
+            line
+            for line in project_text.splitlines()
+            if not line.startswith(("| T-000 |", "| T-002 |", "| T-003 |", "| ADR-002 |"))
+        ) + "\n"
+        project_text = re.sub(
+            r"^\| 実行中タスク \| `T-003`（[^）]+） \|$",
+            "| 実行中タスク | なし |",
+            project_text,
+            flags=re.MULTILINE,
+        )
+        project_text = re.sub(
+            r"^\| 次に行うこと \| [^\n]*`T-003`[^\n]* \|$",
+            "| 次に行うこと | `T-001`の計画を提示する |",
+            project_text,
+            flags=re.MULTILINE,
+        )
+        project_text = project_text.replace("{{project / template}}", "project")
+        project.write_text(
+            re.sub(r"\{\{[^{}]+\}\}", "未決定", project_text),
+            encoding="utf-8",
+        )
+
+        task = root / "docs/tasks/T-001-project-initialization.md"
+        task.write_text(
+            task.read_text(encoding="utf-8").replace(
+                "{{PROJECT_NAME}}", "Sample Project"
+            ),
+            encoding="utf-8",
+        )
+        for filename in (
+            "T-000-harness-template.md",
+            "T-002-repository-collaboration-rules.md",
+            "T-003-harness-adoption.md",
+        ):
+            (root / "docs/tasks" / filename).unlink()
+        (root / "README.md").write_text("# Sample Project\n", encoding="utf-8")
 
     def test_template_mode_accepts_template(self) -> None:
         result = self.run_check(REPOSITORY_ROOT)
@@ -66,6 +109,86 @@ class HarnessCheckTests(unittest.TestCase):
                 result.stdout,
             )
 
+    def test_project_mode_accepts_projectized_harness(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            self.copy_harness(root)
+            self.projectize_harness(root)
+
+            result = self.run_check(root, mode="project")
+
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_project_mode_rejects_template_maintenance_task(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            self.copy_harness(root)
+            self.projectize_harness(root)
+            source = REPOSITORY_ROOT / "docs/tasks/T-000-harness-template.md"
+            target = root / "docs/tasks/T-000-harness-template.md"
+            target.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
+            project = root / "docs/PROJECT.md"
+            project.write_text(
+                project.read_text(encoding="utf-8").replace(
+                    "| T-001 | P0 | プロジェクト制御文書を初期化する | `docs/tasks/T-001-project-initialization.md` | ready | required |",
+                    "| T-001 | P0 | プロジェクト制御文書を初期化する | `docs/tasks/T-001-project-initialization.md` | ready | required |\n| T-000 | P0 | 再利用可能な開発ハーネス基盤を定義する | `docs/tasks/T-000-harness-template.md` | done | required |",
+                    1,
+                ),
+                encoding="utf-8",
+            )
+
+            result = self.run_check(root, mode="project")
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(
+                "template maintenance task remains: docs/tasks/T-000-harness-template.md",
+                result.stdout,
+            )
+
+    def test_project_mode_rejects_template_decision(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            self.copy_harness(root)
+            self.projectize_harness(root)
+            project = root / "docs/PROJECT.md"
+            project.write_text(
+                project.read_text(encoding="utf-8").replace(
+                    "\n## 14. Open questions and risks",
+                    "\n| ADR-999 | template | 2026-11-11 | accepted | 配布元の決定 | 理由 | 影響 | owner |\n\n## 14. Open questions and risks",
+                    1,
+                ),
+                encoding="utf-8",
+            )
+
+            result = self.run_check(root, mode="project")
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("template decision remains: ADR-999", result.stdout)
+
+    def test_project_mode_requires_harness_requirements(self) -> None:
+        for requirement_id in REQUIRED_HARNESS_REQUIREMENT_IDS:
+            with self.subTest(requirement_id=requirement_id), tempfile.TemporaryDirectory() as temp_dir:
+                root = Path(temp_dir)
+                self.copy_harness(root)
+                self.projectize_harness(root)
+                project = root / "docs/PROJECT.md"
+                project.write_text(
+                    "\n".join(
+                        line
+                        for line in project.read_text(encoding="utf-8").splitlines()
+                        if not line.startswith(f"| {requirement_id} |")
+                    )
+                    + "\n",
+                    encoding="utf-8",
+                )
+
+                result = self.run_check(root, mode="project")
+
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(
+                    f"missing harness requirement: {requirement_id}", result.stdout
+                )
+
     def test_each_required_heading_is_enforced(self) -> None:
         for heading in REQUIRED_HEADINGS:
             with self.subTest(heading=heading), tempfile.TemporaryDirectory() as temp_dir:
@@ -93,6 +216,22 @@ class HarnessCheckTests(unittest.TestCase):
 
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn(f"missing required file: {relative}", result.stdout)
+
+    def test_template_onboarding_content_is_enforced(self) -> None:
+        for snippet in TEMPLATE_README_SNIPPETS:
+            with self.subTest(snippet=snippet), tempfile.TemporaryDirectory() as temp_dir:
+                root = Path(temp_dir)
+                self.copy_harness(root)
+                readme = root / "README.md"
+                readme.write_text(
+                    readme.read_text(encoding="utf-8").replace(snippet, "removed"),
+                    encoding="utf-8",
+                )
+
+                result = self.run_check(root)
+
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("missing template onboarding content", result.stdout)
 
     def test_each_required_pr_heading_is_enforced(self) -> None:
         for heading in REQUIRED_PR_HEADINGS:
@@ -290,6 +429,26 @@ class HarnessCheckTests(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("owner review mismatch for T-001", result.stdout)
 
+    def test_task_template_role_is_required(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            self.copy_harness(root)
+            task = root / "docs/tasks/T-001-project-initialization.md"
+            task.write_text(
+                task.read_text(encoding="utf-8").replace(
+                    "| Template role | project |\n", "", 1
+                ),
+                encoding="utf-8",
+            )
+
+            result = self.run_check(root)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(
+                "missing template role: docs/tasks/T-001-project-initialization.md",
+                result.stdout,
+            )
+
     def test_task_filename_id_must_match_ledger_id(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
@@ -415,9 +574,14 @@ class HarnessCheckTests(unittest.TestCase):
             root = Path(temp_dir)
             self.copy_harness(root)
             project = root / "docs/PROJECT.md"
+            snapshot_row = "| 次のreadyタスク | `T-001`（ready） |"
+            project_text = project.read_text(encoding="utf-8")
+            self.assertIn(snapshot_row, project_text)
             project.write_text(
-                project.read_text(encoding="utf-8").replace(
-                    "| 実行中タスク | なし |", "| 実行中タスク | `T-000`（in_review） |", 1
+                project_text.replace(
+                    snapshot_row,
+                    "| 次のreadyタスク | `T-000`（in_review） |",
+                    1,
                 ),
                 encoding="utf-8",
             )
@@ -431,26 +595,13 @@ class HarnessCheckTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)
             self.copy_harness(root)
-            project = root / "docs/PROJECT.md"
-            project.write_text(
-                project.read_text(encoding="utf-8")
-                .replace("`T-000`（in_review）", "`T-000`（done）", 1)
-                .replace(
-                    "| T-000 | P0 | 再利用可能な開発ハーネス基盤を定義する | `docs/tasks/T-000-harness-template.md` | in_review | required |",
-                    "| T-000 | P0 | 再利用可能な開発ハーネス基盤を定義する | `docs/tasks/T-000-harness-template.md` | done | required |",
-                    1,
-                ),
-                encoding="utf-8",
-            )
             task = root / "docs/tasks/T-000-harness-template.md"
             task.write_text(
-                task.read_text(encoding="utf-8")
-                .replace("| Status | in_review |", "| Status | done |", 1)
-                .replace("- [ ] 独立reviewがpassする。", "- [x] 独立reviewがpassする。", 1)
-                .replace("- [ ] owner reviewが完了する。", "- [x] owner reviewが完了する。", 1)
-                .replace("| `python3 -m unittest scripts/test_check_harness.py` | pass |", "| `python3 -m unittest scripts/test_check_harness.py` | not_run |", 1)
-                .replace("- Verdict: pending after requested restructuring", "- Verdict: pass", 1)
-                .replace("- Result: pending", "- Result: approved", 1),
+                task.read_text(encoding="utf-8").replace(
+                    "| `python3 -m unittest scripts/test_check_harness.py` | pass |",
+                    "| `python3 -m unittest scripts/test_check_harness.py` | not_run |",
+                    1,
+                ),
                 encoding="utf-8",
             )
 

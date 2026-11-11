@@ -6,6 +6,7 @@
 | Phase | {{PHASE_ID}} |
 | Linked specs | {{SPEC_IDS}} |
 | Depends on | {{DEPENDENCIES}} |
+| Template role | project / maintenance |
 | Owner review | required / not_required — {{REASON}} |
 | Plan approval | pending |
 

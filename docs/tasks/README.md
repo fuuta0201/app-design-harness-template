@@ -35,4 +35,13 @@ CodexのUIでPlan modeを使える場合は `/plan` で開始します。`.codex
 
 `Plan approval` は機械検証のため `pending`、`approved`、`rejected` のいずれかを使用します。`in_progress`、`in_review`、`done` は `approved` の場合だけ有効です。
 
+## Template role
+
+task summaryの`Template role`は、配布元だけに必要なtaskと利用プロジェクトに残すtaskを区別します。
+
+- `maintenance`: ハーネステンプレート自体の保守task。Template Repositoryから生成したプロジェクトでは`T-001`でfileと索引行を削除します。
+- `project`: 利用プロジェクトで実行・保持するtask。`T-001`自身と、初期化後に作るtaskはこちらを使います。
+
+`docs/PROJECT.md`のdecision logも同様に`scope`を持ち、`template`のdecisionは`T-001`で削除し、`project`のdecisionだけを利用プロジェクトへ残します。project modeのvalidatorは`maintenance` taskとtemplate scopeのdecisionが残っている場合に失敗します。
+
 `done` にする場合は、acceptance criteriaをすべてcheckし、Verificationのresultを `pass`、`passed`、`success`、`not_applicable` のいずれかにします。独立reviewのVerdictは `pass` または `pass_with_non_blocking_findings`、owner reviewのResultは区分に応じて `approved` または `not_required` とします。

@@ -14,8 +14,8 @@
 | 実行中タスク | なし |
 | 次のreadyタスク | `T-001`（ready） |
 | blocker | なし |
-| 最終検証 | 2026-10-30: validator tests 23件、template validation／Python compile／whitespace検証成功 |
-| 次に行うこと | 実プロジェクトで利用を開始する場合は `T-001` の計画を提示する |
+| 最終検証 | 2026-11-11: validator tests 29件、template validation／Python compile／whitespace検証、独立review、`isTemplate: true`確認成功 |
+| 次に行うこと | 別承認後に`T-003`のlocal差分をcommit／pushする。生成先では`T-001`から開始する |
 
 ## 1. Background and problem
 
@@ -101,6 +101,7 @@
 | HR-010 | 開発成果物の言語とcode commentを統一する | commit、code comment、PR、documentationは日本語とし、code commentはwhatを反復せずwhyを1〜2行で簡潔に記す |
 | HR-011 | PR作成手順を再利用可能にする | PR Skillが概要、commit単位の実装内容、test内容、review観点を日本語で生成し、PR作成時に必ず適用される |
 | HR-012 | GitHub操作を標準化する | local Gitは`git`、GitHubのPR／repository操作は`gh`を使用でき、project初期化時は権限とremoteがあればmerge済みbranchの自動削除を設定する |
+| HR-013 | ハーネスを安全に導入できる | 新規プロジェクトは元リポジトリとGit履歴・remoteを共有しないTemplate Repositoryから生成し、`T-001`でテンプレート保守用の現在地・task・decisionを除去してプロジェクト正本へ初期化する。既存プロジェクトは既存資産を保護する移行手順で導入する |
 
 ## 5. Constraints and external dependencies
 
@@ -289,14 +290,18 @@
 | T-000 | P0 | 再利用可能な開発ハーネス基盤を定義する | `docs/tasks/T-000-harness-template.md` | done | required |
 | T-001 | P0 | プロジェクト制御文書を初期化する | `docs/tasks/T-001-project-initialization.md` | ready | required |
 | T-002 | P0 | task配置とGitHub協業規約を更新する | `docs/tasks/T-002-repository-collaboration-rules.md` | done | required |
+| T-003 | P0 | ハーネスの導入経路を整備する | `docs/tasks/T-003-harness-adoption.md` | done | required |
 
 ## 13. Decision log
 
 重要な選択、却下案、例外、仕様変更を追記します。過去の決定を消さず、置換関係を記録します。
 
-| ID | 日付 | 状態 | 決定 | 理由 | 影響／置換 | 決定者 |
-| --- | --- | --- | --- | --- | --- | --- |
-| ADR-001 | {{YYYY-MM-DD}} | proposed | {{DECISION}} | {{RATIONALE}} | {{IMPACT}} | {{OWNER}} |
+`scope`は、利用プロジェクトに残す決定を`project`、配布元の保守だけに必要な決定を`template`として区別します。Template Repositoryから生成したプロジェクトでは、`T-001`でtemplate scopeの行を削除します。
+
+| ID | scope | 日付 | 状態 | 決定 | 理由 | 影響／置換 | 決定者 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| ADR-001 | {{project / template}} | {{YYYY-MM-DD}} | proposed | {{DECISION}} | {{RATIONALE}} | {{IMPACT}} | {{OWNER}} |
+| ADR-002 | template | 2026-11-11 | accepted | 新規プロジェクトはGitHub Template Repositoryから生成し、既存プロジェクトへの導入は移行手順として分離する | 新規生成では元リポジトリとのremote・履歴共有を避け、既存導入では既存の規約・文書・設定を上書きしないため | `README.md`、GitHub repository設定、`T-001`への導線 | owner |
 
 ## 14. Open questions and risks
 

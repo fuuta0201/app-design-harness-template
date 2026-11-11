@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 
-REQUIRED_FILES = (
+COMMON_REQUIRED_FILES = (
     ".gitignore",
     ".codex/config.toml",
     ".codex/rules/project.rules",
@@ -18,9 +18,7 @@ REQUIRED_FILES = (
     "docs/PROJECT.md",
     "docs/tasks/README.md",
     "docs/tasks/TEMPLATE.md",
-    "docs/tasks/T-000-harness-template.md",
     "docs/tasks/T-001-project-initialization.md",
-    "docs/tasks/T-002-repository-collaboration-rules.md",
     ".agents/skills/app-development-harness/SKILL.md",
     ".agents/skills/app-development-harness/agents/openai.yaml",
     ".agents/skills/independent-change-review/SKILL.md",
@@ -31,6 +29,14 @@ REQUIRED_FILES = (
     "scripts/check_harness.py",
     "scripts/test_check_harness.py",
 )
+
+TEMPLATE_REQUIRED_FILES = (
+    "docs/tasks/T-000-harness-template.md",
+    "docs/tasks/T-002-repository-collaboration-rules.md",
+    "docs/tasks/T-003-harness-adoption.md",
+)
+
+REQUIRED_FILES = COMMON_REQUIRED_FILES + TEMPLATE_REQUIRED_FILES
 
 REQUIRED_HEADINGS = (
     "## 0. Current snapshot",
@@ -50,6 +56,10 @@ REQUIRED_HEADINGS = (
     "## 14. Open questions and risks",
     "## 15. Task evidence and handoff",
     "## 16. Supplementary document registry",
+)
+
+REQUIRED_HARNESS_REQUIREMENT_IDS = tuple(
+    f"HR-{number:03d}" for number in range(1, 14)
 )
 
 VALID_TASK_STATUSES = {
@@ -83,6 +93,15 @@ REQUIRED_TASK_HEADINGS = (
     "## Owner review",
     "## Decisions and discoveries",
     "## Handoff",
+)
+
+TEMPLATE_README_SNIPPETS = (
+    "## 新規プロジェクトへ導入する",
+    "gh repo create OWNER/REPOSITORY",
+    "--template fuuta0201/app-design-harness-template",
+    "## 既存プロジェクトへ導入する",
+    "Template role: maintenance",
+    "python3 scripts/check_harness.py --mode project",
 )
 
 
@@ -167,13 +186,27 @@ def table_data_rows(markdown: str) -> list[list[str]]:
     return rows
 
 
+def decision_rows(project_text: str) -> list[list[str]]:
+    decisions = section(
+        project_text, "## 13. Decision log", "## 14. Open questions and risks"
+    )
+    return [
+        row
+        for row in table_data_rows(decisions)
+        if row and re.fullmatch(r"ADR-\d{3,}", row[0])
+    ]
+
+
 def main() -> int:
     args = parse_args()
     root = args.root.resolve()
     errors: list[str] = []
     warnings: list[str] = []
 
-    for relative in REQUIRED_FILES:
+    required_files = (
+        REQUIRED_FILES if args.mode == "template" else COMMON_REQUIRED_FILES
+    )
+    for relative in required_files:
         path = root / relative
         if not path.is_file():
             errors.append(f"missing required file: {relative}")
@@ -191,6 +224,14 @@ def main() -> int:
         for heading in REQUIRED_HEADINGS:
             if not re.search(rf"^{re.escape(heading)}$", project_text, re.MULTILINE):
                 errors.append(f"missing PROJECT heading: {heading}")
+
+        for requirement_id in REQUIRED_HARNESS_REQUIREMENT_IDS:
+            if not re.search(
+                rf"^\| {re.escape(requirement_id)} \|",
+                project_text,
+                re.MULTILINE,
+            ):
+                errors.append(f"missing harness requirement: {requirement_id}")
 
         placeholders = sorted(set(re.findall(r"\{\{[^{}]+\}\}", project_text)))
         if args.mode == "project" and placeholders:
@@ -265,6 +306,18 @@ def main() -> int:
                     f"owner review mismatch for {task_id}: "
                     f"index={index_owner}, file={owner_match.group(1)}"
                 )
+            template_role_match = re.search(
+                r"^\| Template role \| (project|maintenance) \|$",
+                task_text,
+                re.MULTILINE,
+            )
+            if not template_role_match:
+                errors.append(f"missing template role: {relative}")
+            elif (
+                args.mode == "project"
+                and template_role_match.group(1) == "maintenance"
+            ):
+                errors.append(f"template maintenance task remains: {relative}")
             approval_match = re.search(
                 r"^\| Plan approval \| ([^|]+) \|$", task_text, re.MULTILINE
             )
@@ -409,6 +462,11 @@ def main() -> int:
                     f"index={indexed_status}, snapshot={snapshot_status}"
                 )
 
+        if args.mode == "project":
+            for row in decision_rows(project_text):
+                if len(row) >= 2 and row[1] == "template":
+                    errors.append(f"template decision remains: {row[0]}")
+
         supplementary_files = {
             path.relative_to(root).as_posix()
             for path in (root / "docs").rglob("*")
@@ -430,6 +488,13 @@ def main() -> int:
                 rf"^{re.escape(heading)}$", pr_template_text, re.MULTILINE
             ):
                 errors.append(f"missing PR template heading: {heading}")
+
+    readme = root / "README.md"
+    if args.mode == "template" and readme.is_file():
+        readme_text = readme.read_text(encoding="utf-8")
+        for snippet in TEMPLATE_README_SNIPPETS:
+            if snippet not in readme_text:
+                errors.append(f"missing template onboarding content: {snippet}")
 
     for relative in (
         ".agents/skills/app-development-harness/SKILL.md",
